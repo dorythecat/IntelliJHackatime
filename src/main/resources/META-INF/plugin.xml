@@ -25,4 +25,12 @@
     <extensions defaultExtensionNs="com.intellij">
 
     </extensions>
+
+    <actions>
+        <group id="IntelliJHackatime.Configure" text="Configure" description="Plugin configuration">
+            <add-to-group group-id="ToolsMenu" anchor="last"/>
+            <action class="io.github.dorythecat.intellijhackatime.Configure"
+                    id="IntelliJHackatime.Actions.Configure" text="Configure Hackatime"/>
+        </group>
+    </actions>
 </idea-plugin>
