@@ -33,4 +33,7 @@
                     id="IntelliJHackatime.Actions.Configure" text="Configure Hackatime"/>
         </group>
     </actions>
+    <extensions defaultExtensionNs="com.intellij">
+        <postStartupActivity implementation="io.github.dorythecat.intellijhackatime.IntelliJHackatime"/>
+    </extensions>
 </idea-plugin>
