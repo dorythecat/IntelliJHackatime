@@ -6,6 +6,7 @@ import com.intellij.openapi.ui.Messages
 
 class Configure : AnAction() {
     override fun actionPerformed(p0: AnActionEvent) {
-        Messages.showMessageDialog("This is a test", "TEST MESSAGE", Messages.getInformationIcon())
+        val apiKey = Messages.showInputDialog("Enter your API key", "API key", Messages.getQuestionIcon())
+        Messages.showMessageDialog("Your API Key is $apiKey", "TEST MESSAGE", Messages.getInformationIcon())
     }
 }
