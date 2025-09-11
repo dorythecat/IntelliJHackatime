@@ -4,7 +4,6 @@ import com.jetbrains.cef.remote.thrift.annotation.Nullable
 import java.io.*
 import java.math.BigInteger
 import java.net.MalformedURLException
-import java.net.PasswordAuthentication
 import java.net.URL
 import java.nio.channels.Channels
 import java.nio.channels.ReadableByteChannel
@@ -103,7 +102,7 @@ class Dependencies {
 
     private fun reportMissingPlatformSupport(osname: String?, architecture: String?) {
         val url =
-            "https://api.wakatime.com/api/v1/cli-missing?osname=" + osname + "&architecture=" + architecture + "&plugin=" + IntelliJHackatime.IDE_NAME
+            "https://api.wakatime.com/api/v1/cli-missing?osname=" + osname + "&architecture=" + architecture + "&plugin=" + IDE_NAME
         try {
             getUrlAsString(url, null, false)
         } catch (e: Exception) {
@@ -155,7 +154,7 @@ class Dependencies {
                     //ConfigFile.set("internal", "cli_version_last_modified", true, resp.lastModified)
                     //ConfigFile.set("internal", "cli_version", true, cliVersion)
                 }
-                val now: BigInteger = IntelliJHackatime.getCurrentTimestamp().toBigInteger()
+                val now: BigInteger = getCurrentTimestamp().toBigInteger()
                 //ConfigFile.set("internal", "cli_version_last_accessed", true, now.toString())
                 return cliVersion
             }
@@ -398,7 +397,7 @@ class Dependencies {
             if (output.trim { it <= ' ' } == "<local-build>") return false
 
             //val accessed: String? = ConfigFile.get("internal", "cli_version_last_accessed", true)
-            val now: BigInteger = IntelliJHackatime.getCurrentTimestamp().toBigInteger()
+            val now: BigInteger = getCurrentTimestamp().toBigInteger()
 
             val cliVersion = latestCliVersion()
             println("Latest wakame-cli version: " + cliVersion)

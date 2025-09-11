@@ -2,26 +2,25 @@ package io.github.dorythecat.intellijhackatime
 
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.startup.StartupActivity
+import com.intellij.openapi.startup.ProjectActivity
 import java.io.File
 import java.math.BigDecimal
+import java.math.MathContext
 
+var VERSION: String = ""
+var IDE_NAME: String = ""
+var IDE_VERSION: String = ""
+var READY = false
 
-class IntelliJHackatime : StartupActivity {
-    companion object {
-        var VERSION: String? = null
-        var IDE_NAME: String? = null
-        var IDE_VERSION: String? = null
-        var READY = false
+fun getCurrentTimestamp(): BigDecimal {
+    return BigDecimal((System.currentTimeMillis() / 1000.0).toString()).setScale(4).round(MathContext.DECIMAL32)
+}
 
-        fun getCurrentTimestamp(): BigDecimal {
-            return BigDecimal((System.currentTimeMillis() / 1000.0).toString()).setScale(4, BigDecimal.ROUND_HALF_UP)
-        }
-    }
+class IntelliJHackatime : ProjectActivity {
 
     private val dependencies = Dependencies()
 
-    override fun runActivity(project: Project) {
+    override suspend fun execute(project: Project) {
         VERSION = this.javaClass.`package`.implementationVersion
         IDE_NAME = System.getProperty("idea.platform.prefix")
         IDE_VERSION = System.getProperty("idea.version")
@@ -31,39 +30,34 @@ class IntelliJHackatime : StartupActivity {
     }
 
     private fun checkCli() {
-        ApplicationManager.getApplication().executeOnPooledThread(object : Runnable {
-            override fun run() {
-                if (!dependencies.isCLIInstalled()) {
-                    println("Downloading and installing wakatime-cli...")
+        ApplicationManager.getApplication().executeOnPooledThread {
+            if (!dependencies.isCLIInstalled()) {
+                println("Downloading and installing wakatime-cli...")
+                dependencies.installCLI()
+                READY = true
+                println("Finished downloading and installing wakatime-cli.")
+            } else if (dependencies.isCLIOld()) {
+                if (System.getenv("WAKATIME_CLI_LOCATION") != null &&
+                    !System.getenv("WAKATIME_CLI_LOCATION").trim { it <= ' ' }.isEmpty()) {
+                    if (File(System.getenv("WAKATIME_CLI_LOCATION")).exists())
+                        println("\$WAKATIME_CLI_LOCATION is out of date, please update it.")
+                } else {
+                    println("Upgrading wakatime-cli ...")
                     dependencies.installCLI()
                     READY = true
-                    println("Finished downloading and installing wakatime-cli.")
-                } else if (dependencies.isCLIOld()) {
-                    if (System.getenv("WAKATIME_CLI_LOCATION") != null && !System.getenv("WAKATIME_CLI_LOCATION")
-                            .trim { it <= ' ' }.isEmpty()
-                    ) {
-                        val wakatimeCLI: File = File(System.getenv("WAKATIME_CLI_LOCATION"))
-                        if (wakatimeCLI.exists()) {
-                            println("\$WAKATIME_CLI_LOCATION is out of date, please update it.")
-                        }
-                    } else {
-                        println("Upgrading wakatime-cli ...")
-                        dependencies.installCLI()
-                        READY = true
-                        println("Finished upgrading wakatime-cli.")
-                    }
-                } else {
-                    READY = true
-                    println("wakatime-cli is up to date.")
+                    println("Finished upgrading wakatime-cli.")
                 }
-                dependencies.createSymlink(
-                    dependencies.combinePaths(
-                        dependencies.getResourcesLocation(),
-                        "wakatime-cli"
-                    ), dependencies.getCLILocation()
-                )
-                println("wakatime-cli location: " + dependencies.getCLILocation())
+            } else {
+                READY = true
+                println("wakatime-cli is up to date.")
             }
-        })
+            dependencies.createSymlink(
+                dependencies.combinePaths(
+                    dependencies.getResourcesLocation(),
+                    "wakatime-cli"
+                ), dependencies.getCLILocation()
+            )
+            println("wakatime-cli location: " + dependencies.getCLILocation())
+        }
     }
 }
