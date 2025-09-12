@@ -34,8 +34,8 @@ class IntelliJHackatime : ProjectActivity {
             // use PluginManagerCore if PluginManager deprecated
             VERSION = getPlugin(PluginId.getId("io.github.dorythecat.IntelliJHackatime"))!!.version
         }
-        IDE_NAME = System.getProperty("idea.platform.prefix")
-        IDE_VERSION = System.getProperty("idea.version")
+        IDE_NAME = com.intellij.openapi.application.ApplicationInfo.getInstance().versionName
+        IDE_VERSION = com.intellij.openapi.application.ApplicationInfo.getInstance().fullVersion
         log.info("Hackatime v$VERSION running on $IDE_NAME v$IDE_VERSION")
 
         checkCli()
