@@ -6,6 +6,7 @@
     <!-- Public plugin name should be written in Title Case.
          Guidelines: https://plugins.jetbrains.com/docs/marketplace/best-practices-for-listing.html#plugin-name -->
     <name>IntelliJHackatime</name>
+    <version>0.0.1</version>
 
     <!-- A displayed Vendor name or Organization ID displayed on the Plugins Page. -->
     <vendor url="https://www.yourcompany.com">YourCompany</vendor>
@@ -23,7 +24,7 @@
     <!-- Extension points defined by the plugin.
          Read more: https://plugins.jetbrains.com/docs/intellij/plugin-extension-points.html -->
     <extensions defaultExtensionNs="com.intellij">
-
+        <postStartupActivity implementation="io.github.dorythecat.intellijhackatime.IntelliJHackatime"/>
     </extensions>
 
     <actions>
@@ -33,7 +34,4 @@
                     id="IntelliJHackatime.Actions.Configure" text="Configure Hackatime"/>
         </group>
     </actions>
-    <extensions defaultExtensionNs="com.intellij">
-        <postStartupActivity implementation="io.github.dorythecat.intellijhackatime.IntelliJHackatime"/>
-    </extensions>
 </idea-plugin>
