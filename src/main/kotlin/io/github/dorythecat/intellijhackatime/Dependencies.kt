@@ -23,7 +23,7 @@ import javax.net.ssl.TrustManager
 class Response(var statusCode: Int, var body: String?, @param:Nullable var lastModified: String?)
 
 class Dependencies {
-    private var resourcesLocation: String? = null
+    private var resourcesLocation: String = ""
     private val githubReleasesUrl: String = "https://api.github.com/repos/wakatime/wakatime-cli/releases/latest"
     private val githubDownloadUrl: String = "https://github.com/wakatime/wakatime-cli/releases/latest/download"
 
@@ -48,22 +48,22 @@ class Dependencies {
         return arch
     }
 
-    fun combinePaths(vararg args: String?): String? {
+    fun combinePaths(vararg args: String?): String {
         var path: File? = null
         for (arg in args)
             if (arg != null)
                 path = if (path == null) File(arg) else File(path, arg)
-        return path?.toString()
+        return path.toString()
     }
 
-    fun getResourcesLocation(): String? {
-        if (resourcesLocation != null) return resourcesLocation
+    fun getResourcesLocation(): String {
+        if (resourcesLocation != "") return resourcesLocation
 
         if (System.getenv("WAKATIME_HOME") != null && !System.getenv("WAKATIME_HOME").trim { it <= ' ' }.isEmpty()) {
             val resourcesFolder: File = File(System.getenv("WAKATIME_HOME"))
             if (resourcesFolder.exists()) {
                 resourcesLocation = resourcesFolder.absolutePath
-                println("Using \$WAKATIME_HOME for resources folder: $resourcesLocation")
+                log.info("Using \$WAKATIME_HOME for resources folder: $resourcesLocation")
                 return resourcesLocation
             }
         }
@@ -81,12 +81,12 @@ class Dependencies {
         return resourcesLocation
     }
 
-    fun getCLILocation(): String? {
+    fun getCLILocation(): String {
         if (System.getenv("WAKATIME_CLI_LOCATION") != null && !System.getenv("WAKATIME_CLI_LOCATION").trim { it <= ' ' }
                 .isEmpty()) {
             val wakatimeCLI = File(System.getenv("WAKATIME_CLI_LOCATION"))
             if (wakatimeCLI.exists()) {
-                println("Using \$WAKATIME_CLI_LOCATION as CLI Executable: " + wakatimeCLI)
+                log.info("Using \$WAKATIME_CLI_LOCATION as CLI Executable: $wakatimeCLI")
                 return System.getenv("WAKATIME_CLI_LOCATION")
             }
         }
@@ -100,14 +100,12 @@ class Dependencies {
         return cli.exists()
     }
 
-    private fun reportMissingPlatformSupport(osname: String?, architecture: String?) {
+    private fun reportMissingPlatformSupport(osname: String, architecture: String) {
         val url =
-            "https://api.wakatime.com/api/v1/cli-missing?osname=" + osname + "&architecture=" + architecture + "&plugin=" + IDE_NAME
+            "https://api.wakatime.com/api/v1/cli-missing?osname=$osname&architecture=$architecture&plugin=$IDE_NAME"
         try {
             getUrlAsString(url, null, false)
-        } catch (e: Exception) {
-            println(e)
-        }
+        } catch (e: Exception) { log.error(e) }
     }
 
     private fun checkMissingPlatformSupport() {
@@ -136,12 +134,12 @@ class Dependencies {
             "windows-arm64",
         )
         if (!listOf(*validCombinations).contains("$osname-$arch")) {
-            println("Platform $osname-$arch is not officially supported by wakatime-cli")
+            log.warn("Platform $osname-$arch is not officially supported by wakatime-cli")
             reportMissingPlatformSupport(osname, arch)
         }
     }
 
-    fun latestCliVersion(): String? {
+    fun latestCliVersion(): String {
         try {
             val resp =
                 getUrlAsString(githubReleasesUrl, ConfigFile.get("internal", "cli_version_last_modified", true), true)
@@ -149,16 +147,16 @@ class Dependencies {
             val p: Pattern = Pattern.compile(".*\"tag_name\":\\s*\"([^\"]+)\",.*")
             val m: Matcher = p.matcher(resp.body)
             if (m.find()) {
-                val cliVersion: String? = m.group(1)
+                val cliVersion: String = m.group(1)
                 if (resp.lastModified != null) {
-                    //ConfigFile.set("internal", "cli_version_last_modified", true, resp.lastModified)
-                    //ConfigFile.set("internal", "cli_version", true, cliVersion)
+                    ConfigFile["internal", "cli_version_last_modified", true] = resp.lastModified
+                    ConfigFile["internal", "cli_version", true] = cliVersion
                 }
                 val now: BigInteger = getCurrentTimestamp().toBigInteger()
-                //ConfigFile.set("internal", "cli_version_last_accessed", true, now.toString())
+                ConfigFile["internal", "cli_version_last_accessed", true] = now.toString()
                 return cliVersion
             }
-        } catch (e: java.lang.Exception) { println(e) }
+        } catch (e: java.lang.Exception) { log.error(e) }
         return "Unknown"
     }
 
@@ -173,12 +171,12 @@ class Dependencies {
         try {
             downloadUrl = URL(url)
         } catch (e: MalformedURLException) {
-            println("getUrlAsString($url) failed to init new URL")
-            println(e)
+            log.error("getUrlAsString($url) failed to init new URL")
+            log.error(e)
             return null
         }
 
-        println("getUrlAsString(" + downloadUrl.toString() + ")")
+        log.debug("getUrlAsString($downloadUrl)")
 
         var responseLastModified: String? = null
         var statusCode = -1
@@ -199,7 +197,7 @@ class Dependencies {
             if (updateLastModified && conn.getResponseCode() == 200) responseLastModified =
                 conn.getHeaderField("Last-Modified")
         } catch (e: java.lang.RuntimeException) {
-            println(e)
+            log.error(e)
             try {
                 // try downloading without verifying SSL cert (https://github.com/wakatime/jetbrains-wakatime/issues/46)
                 val SSL_CONTEXT = SSLContext.getInstance("SSL")
@@ -220,8 +218,8 @@ class Dependencies {
                 inputStream.close()
                 if (updateLastModified && conn.getResponseCode() == 200) responseLastModified =
                     conn.getHeaderField("Last-Modified")
-            } catch (e: Exception) { println(e) }
-        } catch (e: Exception) { println(e) }
+            } catch (e: Exception) { log.error(e) }
+        } catch (e: Exception) { log.error(e) }
         return Response(statusCode, text.toString(), responseLastModified)
     }
 
@@ -237,9 +235,9 @@ class Dependencies {
             val fileName = ze.getName()
             val newFile = File(outputDir, fileName)
 
-            if (ze.isDirectory()) newFile.mkdirs()
+            if (ze.isDirectory) newFile.mkdirs()
             else {
-                val fos = FileOutputStream(newFile.getAbsolutePath())
+                val fos = FileOutputStream(newFile.absolutePath)
                 var len: Int
                 while ((zis.read(buffer).also { len = it }) > 0) fos.write(buffer, 0, len)
                 fos.close()
@@ -256,7 +254,7 @@ class Dependencies {
         try {
             return Files.isSymbolicLink(filepath.toPath())
         } catch (e: SecurityException) {
-            println(e)
+            log.error(e)
             return false
         }
     }
@@ -265,7 +263,7 @@ class Dependencies {
         try {
             return filepath.isDirectory()
         } catch (e: SecurityException) {
-            println(e)
+            log.error(e)
             return false
         }
     }
@@ -283,7 +281,7 @@ class Dependencies {
         }
     }
 
-    fun downloadFile(url: String?, saveAs: String): Boolean {
+    fun downloadFile(url: String, saveAs: String): Boolean {
         val outFile = File(saveAs)
 
         // create output directory if does not exist
@@ -294,12 +292,12 @@ class Dependencies {
         try {
             downloadUrl = URL(url)
         } catch (e: MalformedURLException) {
-            println("DownloadFile($url) failed to init new URL")
-            println(e)
+            log.error("DownloadFile($url) failed to init new URL")
+            log.error(e)
             return false
         }
 
-        println("DownloadFile($downloadUrl)")
+        log.debug("DownloadFile($downloadUrl)")
 
         var rbc: ReadableByteChannel? = null
         var fos: FileOutputStream? = null
@@ -310,7 +308,7 @@ class Dependencies {
             fos.close()
             return true
         } catch (e: RuntimeException) {
-            println(e)
+            log.error(e)
             try {
                 // try downloading without verifying SSL cert (https://github.com/wakatime/jetbrains-wakatime/issues/46)
                 val SSL_CONTEXT = SSLContext.getInstance("SSL")
@@ -328,23 +326,23 @@ class Dependencies {
                 inputStream.close()
                 fos.close()
                 return true
-            } catch (e1: NoSuchAlgorithmException) {
-                println(e1)
-            } catch (e1: KeyManagementException) {
-                println(e1)
-            } catch (e1: IOException) {
-                println(e1)
-            } catch (e1: IllegalArgumentException) {
-                println(e1)
-            } catch (e1: java.lang.Exception) {
-                println(e1)
+            } catch (e: NoSuchAlgorithmException) {
+                log.error(e)
+            } catch (e: KeyManagementException) {
+                log.error(e)
+            } catch (e: IOException) {
+                log.error(e)
+            } catch (e: IllegalArgumentException) {
+                log.error(e)
+            } catch (e: java.lang.Exception) {
+                log.error(e)
             }
-        } catch (e: IOException) { println(e) }
+        } catch (e: IOException) { log.error(e) }
         return false
     }
 
     @Throws(IOException::class)
-    private fun makeExecutable(filePath: String?) {
+    private fun makeExecutable(filePath: String) {
         val file = File(filePath)
         try { file.setExecutable(true) } catch (e: SecurityException) { println(e) }
     }
@@ -355,7 +353,7 @@ class Dependencies {
 
         checkMissingPlatformSupport()
 
-        val url: String? = getCLIDownloadUrl()
+        val url: String = getCLIDownloadUrl()
         val zipFile: String = combinePaths(getResourcesLocation(), "wakatime-cli.zip")!!
 
         if (downloadFile(url, zipFile)) {
@@ -370,7 +368,7 @@ class Dependencies {
                 if (!isWindows()) makeExecutable(getCLILocation())
                 val oldZipFile = File(zipFile)
                 oldZipFile.delete()
-            } catch (e: IOException) { println(e) }
+            } catch (e: IOException) { log.error(e) }
         }
     }
 
@@ -381,15 +379,15 @@ class Dependencies {
         cmds.add("--version")
         try {
             val p = Runtime.getRuntime().exec(cmds.toTypedArray<String?>())
-            val stdInput = BufferedReader(InputStreamReader(p.getInputStream()))
-            val stdError = BufferedReader(InputStreamReader(p.getErrorStream()))
+            val stdInput = BufferedReader(InputStreamReader(p.inputStream))
+            val stdError = BufferedReader(InputStreamReader(p.errorStream))
             p.waitFor()
             var output = ""
             var s: String?
             while ((stdInput.readLine().also { s = it }) != null) output += s
             while ((stdError.readLine().also { s = it }) != null) output += s
-            println("wakatime-cli local version output: \"$output\"")
-            println("wakatime-cli local version exit code: " + p.exitValue())
+            log.info("wakatime-cli local version output: \"$output\"")
+            log.info("wakatime-cli local version exit code: " + p.exitValue())
 
             if (p.exitValue() != 0) return true
 
@@ -400,13 +398,13 @@ class Dependencies {
             val now: BigInteger = getCurrentTimestamp().toBigInteger()
 
             val cliVersion = latestCliVersion()
-            println("Latest wakame-cli version: " + cliVersion)
+            println("Latest wakame-cli version: $cliVersion")
             if (output.trim { it <= ' ' } == cliVersion) return false
-        } catch (e: java.lang.Exception) { println(e) }
+        } catch (e: java.lang.Exception) { log.error(e) }
         return true
     }
 
-    fun createSymlink(source: String?, destination: String?) {
+    fun createSymlink(source: String, destination: String) {
         val sourceLink = File(source)
         if (isDirectory(sourceLink)) recursiveDelete(sourceLink)
         if (!isWindows()) {
@@ -418,17 +416,13 @@ class Dependencies {
                     println(e)
                     try {
                         Files.copy(File(destination).toPath(), sourceLink.toPath(), StandardCopyOption.REPLACE_EXISTING)
-                    } catch (e: java.lang.Exception) {
-                        println(e)
-                    }
+                    } catch (e: java.lang.Exception) { log.error(e) }
                 }
             }
         } else {
             try {
                 Files.copy(File(destination).toPath(), sourceLink.toPath(), StandardCopyOption.REPLACE_EXISTING)
-            } catch (e: java.lang.Exception) {
-                println(e)
-            }
+            } catch (e: java.lang.Exception) { log.error(e) }
         }
     }
 }
