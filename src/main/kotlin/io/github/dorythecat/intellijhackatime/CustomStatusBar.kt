@@ -36,7 +36,7 @@ class CustomStatusBar : StatusBarWidgetFactory {
 
         override fun ID(): String { return "Hackatime" }
 
-        override fun getPresentation(): StatusBarWidget.WidgetPresentation? { return StatusBarPresenter(this) }
+        override fun getPresentation(): StatusBarWidget.WidgetPresentation { return StatusBarPresenter(this) }
 
         override fun install(statusBar: StatusBar) {}
 

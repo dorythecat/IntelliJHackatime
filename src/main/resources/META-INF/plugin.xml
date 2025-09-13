@@ -1,5 +1,5 @@
 <!-- Plugin Configuration File. Read more: https://plugins.jetbrains.com/docs/intellij/plugin-configuration-file.html -->
-<idea-plugin>
+<idea-plugin require-restart="true">
     <!-- Unique identifier of the plugin. It should be FQN. It cannot be changed between the plugin versions. -->
     <id>io.github.dorythecat.IntelliJHackatime</id>
 
@@ -19,12 +19,13 @@
     <!-- Product and plugin compatibility requirements.
          Read more: https://plugins.jetbrains.com/docs/intellij/plugin-compatibility.html -->
     <depends>com.intellij.modules.platform</depends>
+    <depends>com.intellij.modules.lang</depends>
 
     <!-- Extension points defined by the plugin.
          Read more: https://plugins.jetbrains.com/docs/intellij/plugin-extension-points.html -->
     <extensions defaultExtensionNs="com.intellij">
         <statusBarWidgetFactory implementation="io.github.dorythecat.intellijhackatime.CustomStatusBar"
-                                id="IntelliJHackatime.StatusBarWidget"
+                                id="io.github.dorythecat.intellijhackatime.CustomStatusBar"
                                 order="first"/>
         <postStartupActivity implementation="io.github.dorythecat.intellijhackatime.IntelliJHackatime"/>
     </extensions>
@@ -33,7 +34,8 @@
         <group id="IntelliJHackatime.Configure" text="Configure" description="Plugin configuration">
             <add-to-group group-id="ToolsMenu" anchor="last"/>
             <action class="io.github.dorythecat.intellijhackatime.Configure"
-                    id="IntelliJHackatime.Actions.Configure" text="Configure Hackatime"/>
+                    id="IntelliJHackatime.Actions.Configure"
+                    text="Configure Hackatime"/>
         </group>
     </actions>
 </idea-plugin>
