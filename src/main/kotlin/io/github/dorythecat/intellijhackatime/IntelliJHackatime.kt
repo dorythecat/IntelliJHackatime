@@ -15,6 +15,8 @@ var VERSION: String = ""
 var IDE_NAME: String = ""
 var IDE_VERSION: String = ""
 var READY = false
+var DEBUG = false
+var METRICS = true
 
 val log = com.intellij.openapi.diagnostic.Logger.getInstance("Hackatime")
 
@@ -38,7 +40,15 @@ class IntelliJHackatime : ProjectActivity {
         IDE_VERSION = com.intellij.openapi.application.ApplicationInfo.getInstance().fullVersion
         log.info("Hackatime v$VERSION running on $IDE_NAME v$IDE_VERSION")
 
+        setupConfigs()
         checkCli()
+    }
+
+    fun setupConfigs() {
+        val debug = ConfigFile.get("settings", "debug", false)
+        DEBUG = debug != null && debug.trim { it <= ' ' } == "true"
+        val metrics = ConfigFile.get("settings", "metrics", false)
+        METRICS = metrics != null && metrics.trim { it <= ' ' } == "true"
     }
 
     private fun checkCli() {
