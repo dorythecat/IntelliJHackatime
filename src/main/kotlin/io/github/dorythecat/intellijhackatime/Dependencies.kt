@@ -69,21 +69,21 @@ class Dependencies {
         }
 
         if (isWindows()) {
-            val windowsHome: File = File(System.getenv("USERPROFILE"))
-            val resourcesFolder: File = File(windowsHome, ".wakatime")
+            val windowsHome = File(System.getenv("USERPROFILE"))
+            val resourcesFolder = File(windowsHome, ".wakatime")
             resourcesLocation = resourcesFolder.absolutePath
             return resourcesLocation
         }
 
-        val userHomeDir: File = File(System.getProperty("user.home"))
-        val resourcesFolder: File = File(userHomeDir, ".wakatime")
+        val userHomeDir = File(System.getProperty("user.home"))
+        val resourcesFolder = File(userHomeDir, ".wakatime")
         resourcesLocation = resourcesFolder.absolutePath
         return resourcesLocation
     }
 
     fun getCLILocation(): String {
-        if (System.getenv("WAKATIME_CLI_LOCATION") != null && !System.getenv("WAKATIME_CLI_LOCATION").trim { it <= ' ' }
-                .isEmpty()) {
+        if (System.getenv("WAKATIME_CLI_LOCATION") != null &&
+            !System.getenv("WAKATIME_CLI_LOCATION").trim { it <= ' ' }.isEmpty()) {
             val wakatimeCLI = File(System.getenv("WAKATIME_CLI_LOCATION"))
             if (wakatimeCLI.exists()) {
                 log.info("Using \$WAKATIME_CLI_LOCATION as CLI Executable: $wakatimeCLI")
@@ -96,7 +96,7 @@ class Dependencies {
     }
 
     fun isCLIInstalled(): Boolean {
-        val cli: File = File(getCLILocation())
+        val cli = File(getCLILocation())
         return cli.exists()
     }
 
@@ -112,26 +112,13 @@ class Dependencies {
         val osname: String = osname()
         val arch: String = architecture()
 
-        val validCombinations = arrayOf<String>(
-            "darwin-amd64",
-            "darwin-arm64",
-            "freebsd-386",
-            "freebsd-amd64",
-            "freebsd-arm",
-            "linux-386",
-            "linux-amd64",
-            "linux-arm",
-            "linux-arm64",
-            "netbsd-386",
-            "netbsd-amd64",
-            "netbsd-arm",
-            "openbsd-386",
-            "openbsd-amd64",
-            "openbsd-arm",
-            "openbsd-arm64",
-            "windows-386",
-            "windows-amd64",
-            "windows-arm64",
+        val validCombinations = arrayOf(
+            "darwin-amd64", "darwin-arm64",
+            "freebsd-386", "freebsd-amd64", "freebsd-arm",
+            "linux-386", "linux-amd64", "linux-arm", "linux-arm64",
+            "netbsd-386", "netbsd-amd64", "netbsd-arm",
+            "openbsd-386", "openbsd-amd64", "openbsd-arm", "openbsd-arm64",
+            "windows-386", "windows-amd64", "windows-arm64",
         )
         if (!listOf(*validCombinations).contains("$osname-$arch")) {
             log.warn("Platform $osname-$arch is not officially supported by wakatime-cli")
@@ -167,7 +154,7 @@ class Dependencies {
     fun getUrlAsString(url: String, @Nullable lastModified: String?, updateLastModified: Boolean): Response? {
         val text = StringBuilder()
 
-        var downloadUrl: URL? = null
+        var downloadUrl: URL
         try {
             downloadUrl = URL(url)
         } catch (e: MalformedURLException) {
@@ -178,7 +165,7 @@ class Dependencies {
 
         log.debug("getUrlAsString($downloadUrl)")
 
-        var responseLastModified: String? = null
+        var responseLastModified: String
         var statusCode = -1
         try {
             val conn = downloadUrl.openConnection() as HttpsURLConnection
@@ -288,7 +275,7 @@ class Dependencies {
         val outDir = outFile.getParentFile()
         if (!outDir.exists()) outDir.mkdirs()
 
-        var downloadUrl: URL? = null
+        var downloadUrl: URL
         try {
             downloadUrl = URL(url)
         } catch (e: MalformedURLException) {
@@ -299,8 +286,8 @@ class Dependencies {
 
         log.debug("DownloadFile($downloadUrl)")
 
-        var rbc: ReadableByteChannel? = null
-        var fos: FileOutputStream? = null
+        var rbc: ReadableByteChannel
+        var fos: FileOutputStream
         try {
             rbc = Channels.newChannel(downloadUrl.openStream())
             fos = FileOutputStream(saveAs)
@@ -344,7 +331,7 @@ class Dependencies {
     @Throws(IOException::class)
     private fun makeExecutable(filePath: String) {
         val file = File(filePath)
-        try { file.setExecutable(true) } catch (e: SecurityException) { println(e) }
+        try { file.setExecutable(true) } catch (e: SecurityException) { log.error(e) }
     }
 
     fun installCLI() {
@@ -358,7 +345,6 @@ class Dependencies {
 
         if (downloadFile(url, zipFile)) {
             // Delete old wakatime-cli if it exists
-
             val file = File(getCLILocation())
             recursiveDelete(file)
 
@@ -398,7 +384,7 @@ class Dependencies {
             val now: BigInteger = getCurrentTimestamp().toBigInteger()
 
             val cliVersion = latestCliVersion()
-            println("Latest wakame-cli version: $cliVersion")
+            log.info("Latest wakame-cli version: $cliVersion")
             if (output.trim { it <= ' ' } == cliVersion) return false
         } catch (e: java.lang.Exception) { log.error(e) }
         return true
@@ -413,7 +399,7 @@ class Dependencies {
                 try {
                     Files.createSymbolicLink(sourceLink.toPath(), File(destination).toPath())
                 } catch (e: java.lang.Exception) {
-                    println(e)
+                    log.error(e)
                     try {
                         Files.copy(File(destination).toPath(), sourceLink.toPath(), StandardCopyOption.REPLACE_EXISTING)
                     } catch (e: java.lang.Exception) { log.error(e) }
