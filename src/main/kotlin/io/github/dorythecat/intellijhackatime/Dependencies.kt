@@ -165,7 +165,7 @@ class Dependencies {
 
         log.debug("getUrlAsString($downloadUrl)")
 
-        var responseLastModified: String
+        var responseLastModified = ""
         var statusCode = -1
         try {
             val conn = downloadUrl.openConnection() as HttpsURLConnection
