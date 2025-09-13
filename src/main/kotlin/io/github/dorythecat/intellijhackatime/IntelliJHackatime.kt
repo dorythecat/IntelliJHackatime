@@ -209,16 +209,14 @@ fun getCurrentDocument(project: Project): Document? {
 
 fun setBuildTimeout() {
     AppExecutorUtil.getAppScheduledExecutorService().schedule({
-        @Override
-        fun run() {
-            if (!isBuilding) return
-            val project: Project = getCurrentProject() ?: return
-            if (!isProjectInitialized(project)) return
-            val file: VirtualFile = getCurrentFile(project) ?: return
-            val document: Document = getCurrentDocument(project) ?: return
-            val lineStats: LineStats = getLineStats(document) ?: return
+        if (!isBuilding) return@schedule
+        val project: Project = getCurrentProject() ?: return@schedule
+        if (!isProjectInitialized(project)) return@schedule
+        val file: VirtualFile = getCurrentFile(project) ?: return@schedule
+        val document: Document = getCurrentDocument(project) ?: return@schedule
+        val lineStats: LineStats = getLineStats(document) ?: return@schedule
             appendHeartbeat(file, project, false, lineStats)
-        } }, 10, TimeUnit.SECONDS)
+    }, 10, TimeUnit.SECONDS)
 }
 
 fun appendHeartbeat(file: VirtualFile, project: Project, isWrite: Boolean, lineStats: LineStats) {
