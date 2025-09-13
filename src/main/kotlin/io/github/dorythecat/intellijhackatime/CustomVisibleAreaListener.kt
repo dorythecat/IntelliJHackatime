@@ -7,7 +7,6 @@ import com.intellij.openapi.vfs.VirtualFile
 
 class CustomVisibleAreaListener : VisibleAreaListener {
     override fun visibleAreaChanged(visibleAreaEvent: VisibleAreaEvent) {
-        // WakaTime.log.debug("visibleAreaChanged event");
         try {
             if (!didChange(visibleAreaEvent)) return
             if (!isAppActive()) return
