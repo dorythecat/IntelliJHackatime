@@ -5,10 +5,19 @@ import com.intellij.ide.plugins.PluginManagerCore.getPlugin
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.extensions.PluginId
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.project.ProjectManager
 import com.intellij.openapi.startup.ProjectActivity
+import com.intellij.openapi.ui.Messages
+import com.intellij.openapi.wm.StatusBar
+import com.intellij.openapi.wm.WindowManager
+import com.jetbrains.cef.remote.thrift.annotation.Nullable
+import java.io.BufferedReader
 import java.io.File
+import java.io.InputStreamReader
 import java.math.BigDecimal
 import java.math.MathContext
+import java.util.*
+import kotlin.collections.toTypedArray
 
 
 var VERSION: String = ""
@@ -17,6 +26,10 @@ var IDE_VERSION: String = ""
 var READY = false
 var DEBUG = false
 var METRICS = true
+var STATUS_BAR = true
+
+var todayText: String = " WakaTime loading..."
+var todayTextTime: BigDecimal = BigDecimal(0)
 
 val log = com.intellij.openapi.diagnostic.Logger.getInstance("Hackatime")
 
@@ -32,7 +45,7 @@ class IntelliJHackatime : ProjectActivity {
         try {
             // support older IDE versions with deprecated PluginManager
             VERSION = PluginManager.getPlugin(PluginId.getId("io.github.dorythecat.IntelliJHackatime"))!!.version
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             // use PluginManagerCore if PluginManager deprecated
             VERSION = getPlugin(PluginId.getId("io.github.dorythecat.IntelliJHackatime"))!!.version
         }
@@ -42,6 +55,7 @@ class IntelliJHackatime : ProjectActivity {
 
         setupConfigs()
         setLoggingLevel()
+        setupStatusBar()
         checkCli()
     }
 
@@ -57,6 +71,87 @@ class IntelliJHackatime : ProjectActivity {
             log.info("Debug logging enabled.")
             System.setProperty("idea.log.debug.categories", "Hackatime")
         } else System.setProperty("idea.log.debug.categories", "")
+    }
+
+    private fun obfuscateKey(cmds: Array<String>): Array<String> {
+        val newCmds = ArrayList<String>()
+        var lastCmd = ""
+        for (cmd: String in cmds) {
+            if (lastCmd === "--key") newCmds.add(obfuscateKey(arrayOf(cmd)))
+            else newCmds.add(cmd)
+            lastCmd = cmd
+        }
+        return newCmds.toTypedArray<String>()
+    }
+
+    fun updateStatusBarText() {
+        // rate limit, to prevent from fetching Today's stats too frequently
+
+        val now: BigDecimal = getCurrentTimestamp()
+        if (todayTextTime.add(BigDecimal(60)) > now) return
+        todayTextTime = getCurrentTimestamp()
+
+        ApplicationManager.getApplication().executeOnPooledThread {
+            val cmds = ArrayList<String>()
+            cmds.add(dependencies.getCLILocation())
+            cmds.add("--today")
+
+            val apiKey = ConfigFile.getApiKey()
+            if (apiKey != "") {
+                cmds.add("--key")
+                cmds.add(apiKey)
+            }
+
+            log.debug("Executing CLI: " + obfuscateKey(cmds.toTypedArray<String>()).contentToString())
+
+            try {
+                val proc = Runtime.getRuntime().exec(cmds.toTypedArray<String?>())
+                val stdout = BufferedReader(InputStreamReader(proc.inputStream))
+                val stderr = BufferedReader(InputStreamReader(proc.errorStream))
+                proc.waitFor()
+                val output = ArrayList<String?>()
+                var s: String?
+                while ((stdout.readLine().also { s = it }) != null) output.add(s)
+                while ((stderr.readLine().also { s = it }) != null) output.add(s)
+                log.debug("Command finished with return value: " + proc.exitValue())
+                todayText = " " + java.lang.String.join("", output)
+                todayTextTime = getCurrentTimestamp()
+            } catch (interruptedException: InterruptedException) {
+                log.error(interruptedException)
+            } catch (e: java.lang.Exception) {
+                log.error(e)
+                if (dependencies.isWindows() && e.toString().contains("Access is denied")) {
+                    try {
+                        Messages.showWarningDialog(
+                            "Microsoft Defender is blocking WakaTime. Please allow " +
+                                    dependencies.getCLILocation() +
+                                    " to run so WakaTime can upload code stats to your dashboard.",
+                            "Error"
+                        )
+                    } catch (e: java.lang.Exception) { log.error(e) }
+                }
+            }
+        }
+    }
+
+    @Nullable
+    fun getCurrentProject(): Project? {
+        var project: Project? = null
+        try { project = ProjectManager.getInstance().getDefaultProject() } catch (e: java.lang.Exception) { log.error(e) }
+        return project
+    }
+
+    fun setupStatusBar() {
+        val statusBarVal = ConfigFile.get("settings", "status_bar_enabled", false)
+        STATUS_BAR = statusBarVal == null || statusBarVal.trim { it <= ' ' } != "false"
+        if (READY) {
+            try {
+                updateStatusBarText()
+                val project: Project = getCurrentProject() ?: return
+                val statusbar: StatusBar = WindowManager.getInstance().getStatusBar(project) ?: return
+                statusbar.updateWidget("WakaTime")
+            } catch (e: java.lang.Exception) { log.error("Failed to update status bar widget: " + e.message) }
+        }
     }
 
     private fun checkCli() {
@@ -90,4 +185,8 @@ class IntelliJHackatime : ProjectActivity {
             log.debug("wakatime-cli location: " + dependencies.getCLILocation())
         }
     }
+}
+
+private fun ArrayList<String>.add(e: Array<String>) {
+    for (s in e) this.add(s)
 }
