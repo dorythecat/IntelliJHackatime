@@ -157,7 +157,7 @@ class ConfigFile {
 
         fun get(section: String, key: String?, internal: Boolean): String? {
             val file: String = getConfigFilePath(internal)
-            var `val`: String? = null
+            var value = ""
             try {
                 val br = BufferedReader(FileReader(file))
                 var currentSection = ""
@@ -169,27 +169,21 @@ class ConfigFile {
                                 .lowercase(Locale.getDefault())
                         } else {
                             if (section.lowercase(Locale.getDefault()) == currentSection) {
-                                val parts: Array<String?> =
+                                val parts: Array<String> =
                                     line.split("=".toRegex()).dropLastWhile { it.isEmpty() }.toTypedArray()
-                                if (parts.size != 2 || parts[0]!!.trim { it <= ' ' } != key) continue
-                                `val` = parts[1]!!.trim { it <= ' ' }
+                                if (parts.size != 2 || parts[0].trim { it <= ' ' } != key) continue
+                                value = parts[1].trim { it <= ' ' }
                                 br.close()
-                                return removeNulls(`val`)
+                                return value
                             }
                         }
                         line = br.readLine()
                     }
                 } catch (e: Exception) {
                     e.printStackTrace()
-                } finally {
-                    try {
-                        br.close()
-                    } catch (e: IOException) {
-                        e.printStackTrace()
-                    }
-                }
-            } catch (e: FileNotFoundException) { /* ignored */ }
-            return removeNulls(`val`)
+                } finally { try { br.close() } catch (e: IOException) { e.printStackTrace() } }
+            } catch (e: FileNotFoundException) { log.debug(e) }
+            return value
         }
     }
 }
