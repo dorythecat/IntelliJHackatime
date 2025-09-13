@@ -23,6 +23,9 @@
     <!-- Extension points defined by the plugin.
          Read more: https://plugins.jetbrains.com/docs/intellij/plugin-extension-points.html -->
     <extensions defaultExtensionNs="com.intellij">
+        <statusBarWidgetFactory implementation="io.github.dorythecat.intellijhackatime.CustomStatusBar"
+                                id="IntelliJHackatime.StatusBarWidget"
+                                order="first"/>
         <postStartupActivity implementation="io.github.dorythecat.intellijhackatime.IntelliJHackatime"/>
     </extensions>
 

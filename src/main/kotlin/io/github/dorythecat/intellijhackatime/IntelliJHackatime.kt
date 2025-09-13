@@ -1,5 +1,6 @@
 package io.github.dorythecat.intellijhackatime
 
+import com.intellij.ide.BrowserUtil
 import com.intellij.ide.plugins.PluginManager
 import com.intellij.ide.plugins.PluginManagerCore.getPlugin
 import com.intellij.openapi.Disposable
@@ -256,6 +257,10 @@ fun appendHeartbeat(file: VirtualFile, project: Project, isWrite: Boolean, lineS
         if (isBuilding) setBuildTimeout()
     };
 }
+
+fun openDashboardWebsite() { BrowserUtil.browse(ConfigFile.getDashboardUrl()); }
+
+fun getStatusBarText(): String? { return if (!STATUS_BAR || !READY) "" else todayText }
 
 class IntelliJHackatime : ProjectActivity {
     override suspend fun execute(project: Project) {
