@@ -4,9 +4,7 @@ import com.intellij.ide.plugins.PluginManager
 import com.intellij.ide.plugins.PluginManagerCore.getPlugin
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.ApplicationManager
-import com.intellij.openapi.editor.Document
-import com.intellij.openapi.editor.Editor
-import com.intellij.openapi.editor.EditorFactory
+import com.intellij.openapi.editor.*
 import com.intellij.openapi.extensions.PluginId
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.fileEditor.FileEditorManager
@@ -44,6 +42,7 @@ var isBuilding = false
 var lastFile: String = ""
 var lastTime: BigDecimal = BigDecimal(0)
 val heartbeatsQueue: Queue<Heartbeat> = LinkedList<Heartbeat>()
+val lineStatsCache: MutableMap<String, LineStats> = HashMap<String, LineStats>()
 
 var todayText: String = " WakaTime loading..."
 var todayTextTime: BigDecimal = BigDecimal(0)
@@ -80,6 +79,30 @@ fun getLineStats(document: Document): LineStats? {
         log.error(e)
         return null
     }
+}
+
+fun saveLineStats(@Nullable file: VirtualFile, lineStats: LineStats) {
+    if (lineStats.isOK) lineStatsCache[file.path] = lineStats
+}
+
+fun saveLineStats(document: Document, lineStats: LineStats) {
+    val file: VirtualFile = getFile(document) ?: return
+    saveLineStats(file, lineStats)
+}
+
+fun getLineStats(document: Document, editor: Editor): LineStats? {
+    for (caret: Caret in editor.caretModel.allCarets) {
+        val lineStats = LineStats()
+        lineStats.lineCount = document.lineCount
+        val position: LogicalPosition = caret.logicalPosition
+        lineStats.lineNumber = position.line + 1
+        lineStats.cursorPosition = position.column + 1
+        if (lineStats.isOK) {
+            saveLineStats(document, lineStats)
+            return lineStats
+        }
+    }
+    return getLineStats(document)
 }
 
 fun checkDebug() {
