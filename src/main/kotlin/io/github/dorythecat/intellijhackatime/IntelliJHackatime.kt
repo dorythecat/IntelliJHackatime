@@ -1,13 +1,18 @@
 package io.github.dorythecat.intellijhackatime
 
+import com.intellij.AppTopics
 import com.intellij.ide.plugins.PluginManager
 import com.intellij.ide.plugins.PluginManagerCore.getPlugin
+import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.editor.EditorFactory
 import com.intellij.openapi.extensions.PluginId
+import com.intellij.openapi.fileEditor.FileDocumentManagerListener
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.ProjectManager
 import com.intellij.openapi.startup.ProjectActivity
 import com.intellij.openapi.ui.Messages
+import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.wm.StatusBar
 import com.intellij.openapi.wm.WindowManager
 import com.jetbrains.cef.remote.thrift.annotation.Nullable
@@ -17,7 +22,6 @@ import java.io.InputStreamReader
 import java.math.BigDecimal
 import java.math.MathContext
 import java.util.*
-import kotlin.collections.toTypedArray
 
 
 var VERSION: String = ""
@@ -57,6 +61,7 @@ class IntelliJHackatime : ProjectActivity {
         setLoggingLevel()
         setupStatusBar()
         checkCli()
+        setupEventListeners()
     }
 
     fun setupConfigs() {
@@ -137,7 +142,8 @@ class IntelliJHackatime : ProjectActivity {
     @Nullable
     fun getCurrentProject(): Project? {
         var project: Project? = null
-        try { project = ProjectManager.getInstance().getDefaultProject() } catch (e: java.lang.Exception) { log.error(e) }
+        try { project = ProjectManager.getInstance().defaultProject
+        } catch (e: java.lang.Exception) { log.error(e) }
         return project
     }
 
@@ -184,6 +190,31 @@ class IntelliJHackatime : ProjectActivity {
             )
             log.debug("wakatime-cli location: " + dependencies.getCLILocation())
         }
+    }
+
+    private fun setupEventListeners() {
+        ApplicationManager.getApplication().invokeLater(object : Runnable {
+            override fun run() {
+                val disposable: Disposable = Disposer.newDisposable("WakaTimeListener")
+                ApplicationManager.getApplication().messageBus.connect()
+
+                // edit document
+                EditorFactory.getInstance().eventMulticaster
+                    .addDocumentListener(CustomDocumentListener(), disposable)
+
+                // mouse press
+                EditorFactory.getInstance().eventMulticaster
+                    .addEditorMouseListener(CustomEditorMouseListener(), disposable)
+
+                // scroll document
+                EditorFactory.getInstance().eventMulticaster
+                    .addVisibleAreaListener(CustomVisibleAreaListener(), disposable)
+
+                // caret moved
+                EditorFactory.getInstance().eventMulticaster
+                    .addCaretListener(CustomCaretListener(), disposable)
+            }
+        })
     }
 }
 
