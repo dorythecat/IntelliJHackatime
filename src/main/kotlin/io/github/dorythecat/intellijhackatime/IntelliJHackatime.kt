@@ -242,7 +242,7 @@ fun appendHeartbeat(file: VirtualFile, project: Project, isWrite: Boolean, lineS
     }
 
     val time: BigDecimal = getCurrentTimestamp()
-    if (!isWrite && file.path.equals(lastFile) && !enoughTimePassed(time)) return
+    if (!isWrite && file.path == lastFile && !enoughTimePassed(time)) return
 
     lastFile = file.path
     lastTime = time
