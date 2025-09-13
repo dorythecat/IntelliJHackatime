@@ -41,6 +41,7 @@ class IntelliJHackatime : ProjectActivity {
         log.info("Hackatime v$VERSION running on $IDE_NAME v$IDE_VERSION")
 
         setupConfigs()
+        setLoggingLevel()
         checkCli()
     }
 
@@ -49,6 +50,13 @@ class IntelliJHackatime : ProjectActivity {
         DEBUG = debug != null && debug.trim { it <= ' ' } == "true"
         val metrics = ConfigFile.get("settings", "metrics", false)
         METRICS = metrics != null && metrics.trim { it <= ' ' } == "true"
+    }
+
+    fun setLoggingLevel() {
+        if (DEBUG) {
+            log.info("Debug logging enabled.")
+            System.setProperty("idea.log.debug.categories", "Hackatime")
+        } else System.setProperty("idea.log.debug.categories", "")
     }
 
     private fun checkCli() {
