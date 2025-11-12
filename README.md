@@ -7,6 +7,14 @@ With some luck I won't be the only person that finds this useful...
 (It's basically a recode on Kotlin of the already existing WakaTime plugin, so yeaaaaah...)
 
 # How to use
-To use it, just download the plugin and add it from the IDE. Simple, and easy :D
+To install the plugin, follow these easy steps:
 
-If it doesn't work it's not my fault :3
+1. Download the [latest release](https://github.com/dorythecat/IntelliJHackatime/releases/tag/release) from the GitHub.
+2. Open up your preferred Jetbrains IDE.
+3. Click `Ctrl+Alt+S` to open the settings menu (Or go to File -> Settings on the IDE)
+4. Go to `Plugins`.
+5. Click on the settings wheel inside this menu, and then on `Install Plugin from from Disk...`.
+6. Select the Plugin's jar.
+7. All set! :D
+
+The program is a bit buggy at the time, but hopefully it works right for ya, and if not, please open an Issue. Thank you in advance. <3
